@@ -9,7 +9,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "easyStore <subcommand> <options>",
+	Use:   "easyStore",
 	Short: "This is used for storing flowglog into sql from s3",
 	Long:  "This is used for storing flowglog into sql from s3",
 	Run: func(_ *cobra.Command, _ []string) {
