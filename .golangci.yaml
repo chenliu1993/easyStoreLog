@@ -1,0 +1,24 @@
+service:
+  golangci-lint-version: 1.50.1
+linters-settings:
+  golint:
+    min-confidence: 0
+  misspell:
+    locale: US
+linters:
+  disable-all: true
+  enable:
+    - unused
+    - deadcode
+    - gosimple
+    - errcheck
+    - typecheck
+    - staticcheck
+    - varcheck
+    - structcheck
+    - govet
+    - unparam
+    - ineffassign
+    - golint
+    - gocyclo
+    - goconst
