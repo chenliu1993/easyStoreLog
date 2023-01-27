@@ -19,7 +19,7 @@ import (
 
 var bucket_name = "worker1-flowlog"
 var numCalcsCreated int32
-var bufferSize = 4096
+var bufferSize = 1024 * 1024
 
 var bytesPool = &sync.Pool{
 	// Not thread safe, therefore atomic to make sure of it
@@ -150,16 +150,16 @@ func (ctrl *Controller) collectLogsFromS3(ctx context.Context, storedPath string
 
 		buffer, _ := bytesPool.Get().(*[]byte)
 		// bytesBuffer := buffer.Bytes()
-		cleanBuffer := func(buf *[]byte) {
+		cleanBuffer := func(buf *[]byte, readBytesNum int) {
 			log.Printf("reset buffer with %d", len(*buf))
-			cleanByteSlice(buffer, bufferSize)
+			cleanByteSlice(buffer, readBytesNum)
 			bytesPool.Put(buf)
 		}
 		n, err := reader.Read(*buffer)
 		if err != nil {
 			if err != io.EOF {
 				log.Printf("[ERROR]: read %s failed: %v", key, err)
-				cleanBuffer(buffer)
+				cleanBuffer(buffer, n)
 				return
 			}
 		}
@@ -167,11 +167,11 @@ func (ctrl *Controller) collectLogsFromS3(ctx context.Context, storedPath string
 		_, err = file.Write((*buffer)[:n])
 		if err != nil {
 			log.Printf("[ERROR]: write %s locally failed: %v", key, err)
-			cleanBuffer(buffer)
+			cleanBuffer(buffer, n)
 			return
 		}
 
-		cleanBuffer(buffer)
+		cleanBuffer(buffer, n)
 	}
 
 }
