@@ -90,7 +90,7 @@ func (ctrl *Controller) Stop(stopCh <-chan os.Signal) {
 	s := <-stopCh
 	log.Printf("Got termination signal: %v, stopping controller", s)
 	ctrl.cancel()
-	log.Println("Stopped")
+	log.Printf("Pool has been generated %d times, Now Stopped", numCalcsCreated)
 }
 
 func (ctrl *Controller) collectLogsFromS3(ctx context.Context, storedPath string) {
