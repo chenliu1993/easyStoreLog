@@ -13,3 +13,10 @@ func IsDir(path string) bool {
 	}
 	return s.IsDir()
 }
+
+func cleanByteSlice(buf *[]byte, len int) {
+	// This is a time-consuming op, but I cannot find another way?
+	for i := 0; i < len; i++ {
+		(*buf)[i] = 0
+	}
+}

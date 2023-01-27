@@ -1,9 +1,9 @@
 package pkg
 
 import (
-	"bytes"
 	"compress/gzip"
 	"context"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,13 +19,14 @@ import (
 
 var bucket_name = "worker1-flowlog"
 var numCalcsCreated int32
+var bufferSize = 4096
 
 var bytesPool = &sync.Pool{
 	// Not thread safe, therefore atomic to make sure of it
 	New: func() interface{} {
 		atomic.AddInt32(&numCalcsCreated, 1)
-		buf := make([]byte, 4096)
-		return bytes.NewBuffer(buf)
+		buf := make([]byte, bufferSize)
+		return &buf
 	},
 }
 
@@ -147,22 +148,23 @@ func (ctrl *Controller) collectLogsFromS3(ctx context.Context, storedPath string
 			return
 		}
 
-		buffer, _ := bytesPool.Get().(*bytes.Buffer)
+		buffer, _ := bytesPool.Get().(*[]byte)
 		// bytesBuffer := buffer.Bytes()
-		cleanBuffer := func(buf *bytes.Buffer) {
-			log.Printf("reset buffer with %d", buf.Len())
-			buf.Reset()
-			log.Printf("reset buffer to: %d, %s", buf.Len(), buf.String())
+		cleanBuffer := func(buf *[]byte) {
+			log.Printf("reset buffer with %d", len(*buf))
+			cleanByteSlice(buffer, bufferSize)
 			bytesPool.Put(buf)
 		}
-		_, err = reader.Read(buffer.Bytes())
+		n, err := reader.Read(*buffer)
 		if err != nil {
-			log.Printf("[ERROR]: read %s failed: %v", key, err)
-			cleanBuffer(buffer)
-			return
+			if err != io.EOF {
+				log.Printf("[ERROR]: read %s failed: %v", key, err)
+				cleanBuffer(buffer)
+				return
+			}
 		}
 
-		_, err = file.Write(buffer.Bytes())
+		_, err = file.Write((*buffer)[:n])
 		if err != nil {
 			log.Printf("[ERROR]: write %s locally failed: %v", key, err)
 			cleanBuffer(buffer)
